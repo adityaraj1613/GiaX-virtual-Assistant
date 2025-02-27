@@ -1,6 +1,11 @@
 const btn = document.querySelector('.talk');
 const content = document.querySelector('.content');
 
+
+// API Keys
+const OPENWEATHERMAP_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"; // Replace with your OpenWeatherMap API key
+const NEWSAPI_API_KEY = "9846886bbf214a6d801097c4daff23d0"; // Your NewsAPI key
+
 // Speech Synthesis
 let currentSpeech = null; // Track the current speech
 
