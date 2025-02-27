@@ -3,7 +3,7 @@ const content = document.querySelector('.content');
 
 
 // API Keys
-const OPENWEATHERMAP_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY"; // Replace with your OpenWeatherMap API key
+const OPENWEATHERMAP_API_KEY = "https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude={part}&appid={API key}"; // Replace with your OpenWeatherMap API key
 const NEWSAPI_API_KEY = "9846886bbf214a6d801097c4daff23d0"; // Your NewsAPI key
 
 // Speech Synthesis
