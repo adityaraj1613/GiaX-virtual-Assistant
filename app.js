@@ -1,10 +1,10 @@
 const btn = document.querySelector('.talk');
 const content = document.querySelector('.content');
 
-
 // API Keys
-const OPENWEATHERMAP_API_KEY = "https://api.openweathermap.org/data/3.0/onecall?lat={lat}&lon={lon}&exclude={part}&appid={API key}"; // Replace with your OpenWeatherMap API key
-const NEWSAPI_API_KEY = "9846886bbf214a6d801097c4daff23d0"; // Your NewsAPI key
+const OPENWEATHERMAP_API_KEY = "YOUR_OPENWEATHERMAP_API_KEY";
+const NEWSAPI_API_KEY = "Your NewsAPI key";
+const OPENAI_API_KEY = "Your OpenAI API key";
 
 // Speech Synthesis
 let currentSpeech = null; // Track the current speech
@@ -124,3 +124,173 @@ async function getNews() {
         speak("Sorry, I couldn't fetch the news. Please check your internet connection.");
     }
 }
+
+// OpenAI Integration
+async function askOpenAI(prompt) {
+    const url = "https://api.openai.com/v1/chat/completions";
+    const headers = {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${OPENAI_API_KEY}`
+    };
+    const body = JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        max_tokens: 150
+    });
+
+    try {
+        const response = await fetch(url, { method: "POST", headers, body });
+        const data = await response.json();
+        if (data.choices && data.choices.length > 0) {
+            return data.choices[0].message.content.trim();
+        } else {
+            return "Sorry, I couldn't generate a response.";
+        }
+    } catch (error) {
+        console.error("Error fetching OpenAI response:", error);
+        return "Sorry, I couldn't connect to the AI service.";
+    }
+}
+
+// Write Note to a File
+function writeNoteToFile(note) {
+    const blob = new Blob([note], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "note.txt";
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+// Initialize History
+let history = JSON.parse(localStorage.getItem("history")) || [];
+
+// Function to add an item to history
+function addToHistory(item) {
+    history.push(item);
+    localStorage.setItem("history", JSON.stringify(history));
+    updateHistoryUI();
+}
+
+// Function to update the history UI
+function updateHistoryUI() {
+    const historyList = document.getElementById("history-list");
+    historyList.innerHTML = ""; // Clear the list
+    history.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.textContent = item;
+        li.addEventListener("click", () => {
+            // Handle click on history item (e.g., reload the chat)
+            alert(`You clicked: ${item}`);
+        });
+        historyList.appendChild(li);
+    });
+}
+
+// Toggle Sidebar
+const sidebar = document.getElementById("sidebar");
+const swipeButton = document.getElementById("swipe-button");
+
+swipeButton.addEventListener("click", () => {
+    sidebar.classList.toggle("open");
+});
+
+// Command Handling
+function takeCommand(message) {
+    addToHistory(message); // Save the command to history
+
+    const commands = {
+        "hey": () => speak("Hello Sir, How May I Help You?"),
+        "hello": () => speak("Hello Sir, How May I Help You?"),
+        "what can you do": () => {
+            const abilities = [
+                "I can open Google for you.",
+                "I can open YouTube for you.",
+                "I can open Facebook for you.",
+                "I can tell you the current time.",
+                "I can tell you today's date.",
+                "I can fetch the weather for any city.",
+                "I can provide you with the latest news.",
+                "I can search the web for you.",
+                "I can look up information on Wikipedia.",
+                "I can write notes for you.",
+                "I can answer your questions using AI.",
+                "Just ask me anything!"
+            ];
+            speak("Here's what I can do: " + abilities.join(" "));
+        },
+        "open google": () => {
+            window.open("https://google.com", "_blank");
+            speak("Opening Google...");
+        },
+        "open youtube": () => {
+            window.open("https://youtube.com", "_blank");
+            speak("Opening Youtube...");
+        },
+        "open facebook": () => {
+            window.open("https://facebook.com", "_blank");
+            speak("Opening Facebook...");
+        },
+        "time": () => {
+            const time = new Date().toLocaleString(undefined, { hour: "numeric", minute: "numeric" });
+            speak("The current time is " + time);
+        },
+        "date": () => {
+            const date = new Date().toLocaleString(undefined, { month: "short", day: "numeric" });
+            speak("Today's date is " + date);
+        },
+        "weather": () => {
+            const city = message.replace("weather", "").trim();
+            if (city) {
+                speak(`Fetching weather for ${city}...`);
+                getWeather(city);
+            } else {
+                speak("Please specify a city. For example, say 'weather in New York'.");
+            }
+        },
+        "news": () => {
+            speak("Fetching the latest news...");
+            getNews();
+        },
+        "wikipedia": () => {
+            const query = message.replace("wikipedia", "").trim();
+            window.open(`https://en.wikipedia.org/wiki/${query}`, "_blank");
+            speak("Searching Wikipedia for " + query);
+        },
+        "search": () => {
+            const query = message.replace("search", "").trim();
+            window.open(`https://www.google.com/search?q=${query.replace(" ", "+")}`, "_blank");
+            speak("Searching the web for " + query);
+        },
+        "stop": () => {
+            stopSpeech();
+        },
+        "write a note": async () => {
+            const note = await askOpenAI("Write a note about: " + message.replace("write a note", "").trim());
+            writeNoteToFile(note);
+            speak("Note written and saved to your computer.");
+        },
+        "ask": async () => {
+            const question = message.replace("ask", "").trim();
+            const response = await askOpenAI(question);
+            speak(response);
+        }
+    };
+
+    for (const [keyword, action] of Object.entries(commands)) {
+        if (message.includes(keyword)) {
+            action();
+            return;
+        }
+    }
+
+    // Fallback to OpenAI for general queries
+    speak("Let me think about that...");
+    askOpenAI(message).then(response => speak(response));
+}
+
+// Load history when the page loads
+window.addEventListener("load", () => {
+    updateHistoryUI();
+});
